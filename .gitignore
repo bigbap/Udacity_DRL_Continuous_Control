@@ -2,3 +2,4 @@ environment
 .ipynb_checkpoints
 __pycache__
 test.py
+.DS_Store
