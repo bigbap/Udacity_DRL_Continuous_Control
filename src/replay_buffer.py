@@ -16,10 +16,10 @@ class Experience:
 
 
 class ReplayBuffer():
-    def __init__(self, max_length=DEFAULT_BUFFER_SIZE, batch_size=DEFAULT_BATCH_SIZE):
+    def __init__(self, max_length=DEFAULT_BUFFER_SIZE, batch_size=DEFAULT_BATCH_SIZE, device="cpu"):
         self.max_length = max_length
         self.batch_size = batch_size
-
+        self.device = device
         self.buffer = []
         self.head = -1
 
@@ -42,15 +42,15 @@ class ReplayBuffer():
 
     def prepare_batch(self, batch):
         states = torch.from_numpy(
-            np.vstack([e.state for e in batch if e is not None])).float()
+            np.vstack([e.state for e in batch if e is not None])).float().to(self.device)
         actions = torch.from_numpy(
-            np.vstack([e.action for e in batch if e is not None])).float()
+            np.vstack([e.action for e in batch if e is not None])).float().to(self.device)
         rewards = torch.from_numpy(
-            np.vstack([e.reward for e in batch if e is not None])).float()
+            np.vstack([e.reward for e in batch if e is not None])).float().to(self.device)
         next_states = torch.from_numpy(
-            np.vstack([e.state_prime for e in batch if e is not None])).float()
+            np.vstack([e.state_prime for e in batch if e is not None])).float().to(self.device)
         dones = torch.from_numpy(
-            np.vstack([e.done for e in batch if e is not None]).astype(np.uint8)).float()
+            np.vstack([e.done for e in batch if e is not None]).astype(np.uint8)).float().to(self.device)
 
         return (states, actions, rewards, next_states, dones)
 

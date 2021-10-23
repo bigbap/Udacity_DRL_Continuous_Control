@@ -6,8 +6,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BATCH_SIZE = 128
-REPLAY_LENGTH = 100000
+# solved in 180 episodes
+BATCH_SIZE = 64
+REPLAY_LENGTH = 10000
 LEARN_EVERY = 1
 GAMMA = 0.99
 TAU = 1e-3
@@ -15,28 +16,41 @@ LR_ACTOR = 2e-4
 LR_CRITIC = 2e-4
 WEIGHT_DECAY = 0.0001
 
+# BATCH_SIZE = 32
+# REPLAY_LENGTH = 5000
+# LEARN_EVERY = 1
+# GAMMA = 0.99
+# TAU = 1e-3
+# LR_ACTOR = 2e-4
+# LR_CRITIC = 2e-4
+# WEIGHT_DECAY = 0.0
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 class Agent():
     def __init__(self, s_dim, a_dim, seed=0, model=None):
         # actor netowrks
-        self.actor_local = Actor(s_dim=s_dim, a_dim=a_dim, seed=seed)
-        self.actor_target = Actor(s_dim=s_dim, a_dim=a_dim, seed=seed)
+        self.actor_local = Actor(
+            s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
+        self.actor_target = Actor(
+            s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
         self.actor_optimizer = optim.Adam(
             self.actor_local.parameters(), lr=LR_ACTOR)
-        if model != None:
-            self.actor_local.load_state_dict(torch.load(model))
-            self.actor_target.load_state_dict(torch.load(model))
         self.clone_weights(self.actor_target, self.actor_local)
 
         # critic netowrks
-        self.critic_local = Critic(s_dim=s_dim, a_dim=a_dim, seed=seed)
-        self.critic_target = Critic(s_dim=s_dim, a_dim=a_dim, seed=seed)
+        self.critic_local = Critic(
+            s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
+        self.critic_target = Critic(
+            s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
         self.critic_optimizer = optim.Adam(
             self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
         self.clone_weights(self.critic_target, self.critic_local)
 
         # replay buffer
-        self.replay_buffer = ReplayBuffer(REPLAY_LENGTH, batch_size=BATCH_SIZE)
+        self.replay_buffer = ReplayBuffer(
+            REPLAY_LENGTH, batch_size=BATCH_SIZE, device=device)
 
         # noise process
         self.noise = OUNoise(a_dim, seed)
@@ -51,15 +65,15 @@ class Agent():
         self.noise.reset()
 
     def act(self, state, add_noise=True):
-        state = torch.tensor(state, dtype=torch.float)
+        state = torch.tensor(state).float().to(device)
 
         self.actor_local.eval()
         with torch.no_grad():
-            action = self.actor_local(state)
+            action = self.actor_local(state).cpu().data.numpy()
         self.actor_local.train()
 
         if add_noise:
-            action = action + self.noise.sample()
+            action += self.noise.sample()
 
         return np.clip(action, -1, 1)
 
@@ -84,6 +98,7 @@ class Agent():
         loss = F.mse_loss(prediction, target)
         self.critic_optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)
         self.critic_optimizer.step()
 
         # update actor
@@ -98,3 +113,11 @@ class Agent():
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(
                 tau * local_param.data + (1.0-tau) * target_param.data)
+
+    def save_weights(self):
+        torch.save(self.actor_local.state_dict(), 'actor_local_model.pth')
+        torch.save(self.critic_local.state_dict(), 'critic_local_model.pth')
+
+    def load_weights(self):
+        self.actor_local.load_state_dict(torch.load('actor_local_model.pth'))
+        self.critic_local.load_state_dict(torch.load('critic_local_model.pth'))
