@@ -33,11 +33,12 @@ class Environment:
         self.env.close()
 
 
-def episode(env, agent, t_max=200, train_mode=True, ep=None):
+def episode(env, agent, train_mode=True, t_max=1000):
+    agent.reset()
     score = 0
     state, done = env.reset(train_mode=train_mode)
     for t in range(t_max):
-        action = agent.act(state, ep=ep)
+        action = agent.act(state)
         action = [a.item() for a in action]
 
         reward, state_prime, done = env.step(action)
