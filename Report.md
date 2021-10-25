@@ -36,7 +36,10 @@ The input and hidden layers pass through a `leaky_relu` activation function. The
 - LR_CRITIC = 2e-4          learning rate for the critic netowork
 - WEIGHT_DECAY = 0          L2 penalty
 
-### 2. Learning Plot
+## 2. Learning Plot
 The environment was solved in 180 episodes as can be seen in the plot below.
 
 ![plot](./images/plot.png)
+
+## 3. Ideas for the Future
+- Prioritized experience replay. I tried implementing a prioritized experience replay but it didn't seem to be making much of difference and there was a bug that cause the agent to crash if `WEIGHT_DECAY` was set to 0. In the interest of time, I reverted back to a uniformnly sampled replay buffer. If I had more compute power, I would have spent more time on this.
