@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-# solved in 180 episodes
 BATCH_SIZE = 64
 REPLAY_LENGTH = 10000
 LEARN_EVERY = 1
@@ -14,22 +13,13 @@ GAMMA = 0.99
 TAU = 1e-3
 LR_ACTOR = 2e-4
 LR_CRITIC = 2e-4
-WEIGHT_DECAY = 0.0001
-
-# BATCH_SIZE = 32
-# REPLAY_LENGTH = 5000
-# LEARN_EVERY = 1
-# GAMMA = 0.99
-# TAU = 1e-3
-# LR_ACTOR = 2e-4
-# LR_CRITIC = 2e-4
-# WEIGHT_DECAY = 0.0
+WEIGHT_DECAY = 0
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class Agent():
-    def __init__(self, s_dim, a_dim, seed=0, model=None):
+    def __init__(self, s_dim, a_dim, seed=0):
         # actor netowrks
         self.actor_local = Actor(
             s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
@@ -37,7 +27,6 @@ class Agent():
             s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
         self.actor_optimizer = optim.Adam(
             self.actor_local.parameters(), lr=LR_ACTOR)
-        self.clone_weights(self.actor_target, self.actor_local)
 
         # critic netowrks
         self.critic_local = Critic(
@@ -46,7 +35,6 @@ class Agent():
             s_dim=s_dim, a_dim=a_dim, seed=seed).to(device)
         self.critic_optimizer = optim.Adam(
             self.critic_local.parameters(), lr=LR_CRITIC, weight_decay=WEIGHT_DECAY)
-        self.clone_weights(self.critic_target, self.critic_local)
 
         # replay buffer
         self.replay_buffer = ReplayBuffer(
@@ -56,10 +44,6 @@ class Agent():
         self.noise = OUNoise(a_dim, seed)
 
         self.t_step = -1
-
-    def clone_weights(self, w1, w0):
-        for p1, p0 in zip(w1.parameters(), w0.parameters()):
-            p1.data.copy_(p0.data)
 
     def reset(self):
         self.noise.reset()
@@ -91,11 +75,11 @@ class Agent():
 
         # update critic
         action_prime = self.actor_target(states_prime)
-        prediction = self.critic_local(states, actions)
+        predictions = self.critic_local(states, actions)
         target_prime = self.critic_target(states_prime, action_prime)
-        target = rewards + (GAMMA * target_prime * (1 - dones))
+        targets = rewards + (GAMMA * target_prime * (1 - dones))
 
-        loss = F.mse_loss(prediction, target)
+        loss = F.mse_loss(predictions, targets)
         self.critic_optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.critic_local.parameters(), 1)

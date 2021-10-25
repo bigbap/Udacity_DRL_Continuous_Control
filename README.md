@@ -5,7 +5,9 @@ The goal of this project is to create an agent that can be trained to maintain a
 
 The state space is comprised of 33 dimensions corresponding to position, rotation, velocity, and angular velocities of the arm. The action space is a 4 number vector corresponding to torque applicable to the 2 joints. Every number in the action space is between `-1` and `1`.
 
-The problem is solved once the agent has achieved an average score of 30 over the last 100 episodes
+The problem is solved once the agent has achieved an average score of 30 over the last 100 episodes. An example of a trained agent can be seen below:
+
+![trained agent](./images/giphy.gif)
 
 ## Getting started
 This was built and **tested on MacBook Pro M1 chip only**.
